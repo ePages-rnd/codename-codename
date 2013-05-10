@@ -7,22 +7,55 @@
 </head>
 
 <body>
-  {{> main_menu}}
+  <div id="navigation">
+    {{> main_menu}}
+    {{> team_viewer}}
+    {{> start_game}}
+  </div>
   {{> google_map}}
 </body>
 
 <template name="main_menu">
-  <div id="navigation">
     <ul>
       <li id="main_menu_item1">{{main_menu_item1_text}}</li>
       <li id="main_menu_item2">{{main_menu_item2_text}}</li>
       <li id="main_menu_item3">{{main_menu_item3_text}}</li>
       <li id="main_menu_item4">{{loginButtons}}</li>
     </ul>
-  </div>
 </template>
 
 <template name="google_map">
   <div id="map_canvas">
   </div>
+</template>
+
+<template name="team_viewer">
+  <div id="team_viewer">
+    <table>
+      <tr>
+        <th>Team #1</th>
+        <th>Team #2</th>
+      </tr>
+      <tr>
+        <td>Player 1</td>
+        <td>Player 7</td>
+      </tr>
+      <tr>
+        <td>Player 2</td>
+        <td>Player 4</td>
+      </tr>
+      <tr>
+        <td>Player 6</td>
+        <td>Player 5</td>
+      </tr>
+      <tr>
+        <td>Player 3</td>
+        <td></td>
+      </tr>
+    </table>
+  </div>
+</template>
+
+<template name="start_game">
+  <button>Start Game</button>
 </template>

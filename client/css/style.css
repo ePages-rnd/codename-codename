@@ -29,6 +29,7 @@ body {
     background-color: black;
     opacity: 0.8;
     border-radius: 5px;
+    overflow:hidden;
 }
 
 #navigation ul li {
@@ -38,4 +39,22 @@ body {
     line-height: 40px;
     text-decoration: none;
     color: white;
+}
+
+#team_viewer{
+    margin:10px auto;
+    width:80%;
+
+    background-color: black;
+    opacity: 0.8;
+    border-radius: 5px;
+    color: white;
+}
+
+#team_viewer table{
+    width: 95%;
+}
+
+#team_viewer table td {
+    padding:8px;
 }
