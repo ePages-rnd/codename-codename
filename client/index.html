@@ -1,0 +1,28 @@
+<head>
+  <title>cmiyc</title>
+  <script type="text/javascript" src="https://maps.googleapis.com/maps/api/js?sensor=true"></script>
+  <script type="text/javascript">
+    google.maps.event.addDomListener(window, 'load', cmiyc.initialize);
+  </script>
+</head>
+
+<body>
+  {{> main_menu}}
+  {{> google_map}}
+</body>
+
+<template name="main_menu">
+  <div id="navigation">
+    <ul>
+      <li id="main_menu_item1">{{main_menu_item1_text}}</li>
+      <li id="main_menu_item2">{{main_menu_item2_text}}</li>
+      <li id="main_menu_item3">{{main_menu_item3_text}}</li>
+      <li id="main_menu_item4">{{loginButtons}}</li>
+    </ul>
+  </div>
+</template>
+
+<template name="google_map">
+  <div id="map_canvas">
+  </div>
+</template>

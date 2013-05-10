@@ -1,0 +1,41 @@
+html {
+    height: 100%;
+}
+body {
+    height: 100%;
+}
+* {
+    margin: 0;
+    padding: 0;
+}
+
+#map_canvas {
+    height: 100%;
+}
+
+#navigation {
+    width:100%;
+    position:fixed;
+    top:10px;
+    text-align: center;
+    z-index:900;
+}
+
+#navigation ul {
+    list-style-type: none;
+    height: 40px;
+    width: 80%;
+    margin:auto;
+    background-color: black;
+    opacity: 0.8;
+    border-radius: 5px;
+}
+
+#navigation ul li {
+    float: left;
+    display:inline-block;
+    width: 25%;
+    line-height: 40px;
+    text-decoration: none;
+    color: white;
+}
