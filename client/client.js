@@ -39,10 +39,9 @@ if (Meteor.isClient) {
         };
         map = new gmaps.Map(document.getElementById('map_canvas'), mapOptions);
     };
-    Template.main_menu.main_menu_item1_text = 'Start Game';
-    Template.main_menu.main_menu_item2_text = 'Search Game';
-    Template.main_menu.main_menu_item3_text = 'Mark';
-    Template.main_menu.main_menu_item4_text = 'item 4';
+    Template.main_menu.main_menu_item2_text = 'Create Game';
+    Template.main_menu.main_menu_item3_text = 'Search Game';
+    Template.main_menu.main_menu_item4_text = 'Help';
 
     Template.main_menu.events({
         'click #main_menu_item3': function () {
