@@ -1,0 +1,12 @@
+.map {
+    margin-top: -20px;
+    height: 600px;
+    width: 100%;
+}
+
+/*
+    Prevent bootstrap from causing weird markers in map.
+*/
+.map img {
+    max-width: none;
+}

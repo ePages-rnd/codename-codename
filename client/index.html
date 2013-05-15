@@ -1,0 +1,56 @@
+<head>
+  <title>cmiyc</title>
+</head>
+
+<body>
+  <nav class="navbar">
+    <div class="navbar-inner">
+      <a class="brand" href="#">Catch Me If You Can Haz Cheezeburgerz</a>
+     {{loginButtons}}
+    </div>
+  </nav>
+  {{> map}}
+</body>
+
+<template name="main_menu">
+    <ul class="nav">
+      <li id="add_pin"><a href="#"> Add Pin!</a></li>
+    </ul>
+</template>
+
+<template name="map">
+  {{#constant}}
+    <div class="map" id="map"></div>
+  {{/constant}}
+</template>
+
+<template name="team_viewer">
+  <div id="team_viewer">
+    <table>
+      <tr>
+        <th>Team #1</th>
+        <th>Team #2</th>
+      </tr>
+      <tr>
+        <td>Player 1</td>
+        <td>Player 7</td>
+      </tr>
+      <tr>
+        <td>Player 2</td>
+        <td>Player 4</td>
+      </tr>
+      <tr>
+        <td>Player 6</td>
+        <td>Player 5</td>
+      </tr>
+      <tr>
+        <td>Player 3</td>
+        <td></td>
+      </tr>
+    </table>
+  </div>
+</template>
+
+<template name="start_game">
+  <button>Start Game</button>
+</template>
