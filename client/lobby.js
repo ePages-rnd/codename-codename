@@ -25,14 +25,24 @@ Template.lobby_menu.events({
 Template.search.events({
     'click #search-games-table button': function (event) {
         var gameid = event.currentTarget.id;
-
+        var user = Session.get('username');
         Meteor.call('joinGame', {
             'gameid': gameid,
-            'user': Session.get('username')
+            'user': user
         }, function (error, game) {
             if (!error) {
-                console.log("switch to wait mode for game: " + gameid);
                 Session.set('currentgame', gameid);
+                Games.find(gameid).observe({
+                    'changed': function (new_obj, old_obj) {
+                        if (new_obj.state === 'playing') {
+                            Session.set('state', 'game');
+                        }
+                    },
+                    'removed': function () {
+                        Session.set('currentgame', null);
+                        Session.set('state', 'lobby');
+                    }
+                });
                 Session.set('state', 'wait');
             }
         });

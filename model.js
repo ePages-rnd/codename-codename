@@ -107,6 +107,11 @@ Meteor.methods({
         var game = Games.findOne(gameid);
         var user = options.user;
 
+        if (user === game.gamemaster) {
+            Games.remove(gameid);
+            return;
+        }
+
         Games.update(gameid, {
             $pull: {'team1':user}
         });

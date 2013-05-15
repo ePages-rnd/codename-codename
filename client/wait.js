@@ -29,6 +29,7 @@ Template.wait.events({
             'user': user
         }, function (error, game) {
             if (!error) {
+                Session.set('currentgame', null);
                 Session.set('state', 'lobby');
             }
         });
@@ -69,3 +70,4 @@ Template.wait.gamenotready = function () {
     if (!game) return true;
     return !(game.team1.length + game.team2.length > 5 && Math.abs(game.team1.length - game.team2.length) < 2);
 };
+
