@@ -4,59 +4,74 @@
 /*global window*/
 /*global document*/
 
-/*global MarkedSpots*/
+/*global MarkedSpots, Deps, Session*/
 var map, gmaps;
 
 Meteor.startup(function () {
-    var drawn_spots = {};
-    var drawn_triangles = {};
-
-    Deps.autorun(function () {
-        var spots = MarkedSpots.find().fetch();
-        spots.forEach(function (spot) {
-            if (!drawn_spots[spot._id]) {
-                var marker = new gmaps.Marker({
-                    position: new gmaps.LatLng(spot.x, spot.y),
-                    map: map
-                });
-                drawn_spots[spot._id] = spot;
-            }
-        });
-    });
+    Session.set('state', 'login');
 });
 
-if (Meteor.isClient) {
-    window.cmiyc = window.cmiyc || {};
+window.cmiyc = window.cmiyc || {};
 
-    window.cmiyc.initialize = function () {
-        gmaps = window.google.maps;
+window.cmiyc.initialize = function () {
+    gmaps = window.google.maps;
 
-        var mapOptions = {
-            center: new gmaps.LatLng(40.77153, -73.97722),
-            zoom: 12,
-            disableDefaultUI: true,
-            mapTypeId: gmaps.MapTypeId.TERRAIN
-        };
-        map = new gmaps.Map(document.getElementById('map_canvas'), mapOptions);
+    var mapOptions = {
+        center: new gmaps.LatLng(40.77153, -73.97722),
+        zoom: 4,
+        disableDefaultUI: true,
+        mapTypeId: gmaps.MapTypeId.SATELLITE
     };
-    Template.main_menu.main_menu_item2_text = 'Create Game';
-    Template.main_menu.main_menu_item3_text = 'Search Game';
-    Template.main_menu.main_menu_item4_text = 'Help';
+    map = new gmaps.Map(document.getElementById('map_canvas'), mapOptions);
+    var zoomservice = new gmaps.MaxZoomService();
 
-    Template.main_menu.events({
-        'click #main_menu_item3': function () {
-            var center = map.getCenter();
+    window.navigator.geolocation.watchPosition(
+    function (g) {
+        console.log(g);
+        var lat = g.coords.latitude;
+        var lon = g.coords.longitude;
 
+        var pos = new gmaps.LatLng(lat, lon);
 
-            var marker = new google.maps.Marker({
-                position: center,
-                map: map
-            });
+        Session.set('currentposition', {x:lat,y:lon});
 
-            MarkedSpots.insert({
-                'x': center.kb,
-                'y': center.lb
-            });
-        }
+        map.panTo(pos,5000);
+
+        zoomservice.getMaxZoomAtLatLng(pos, function(maxzoomresult) {
+            map.setZoom(maxzoomresult.zoom-4);
+        });
+    }, function () {
+        console.log(arguments);
+    }, {
+        enableHighAccuracy: true,
+        timeout: 5000,
+        maximumAge: 30000
     });
-}
+
+};
+
+/*
+Template.main_menu.events({
+    'click #main_menu_item4': function () {
+        var center = map.getCenter();
+
+
+        var marker = new gmaps.Marker({
+            position: center,
+            map: map
+        });
+
+        MarkedSpots.insert({
+            'x': center.kb,
+            'y': center.lb
+        });
+    }
+});
+*/
+
+Template.overlay.overlay = function () {
+    var state = Session.get('state');
+    if (typeof Template[state] === 'function') return Template[state](arguments);
+
+    return 'Application is in an undefined state';
+};

@@ -4,57 +4,29 @@ html {
 body {
     height: 100%;
 }
-* {
-    margin: 0;
-    padding: 0;
-}
 
 #map_canvas {
     height: 100%;
 }
 
-#navigation {
-    width:100%;
-    position:fixed;
-    top:10px;
+.overlay {
+    width: 100%;
+    position: fixed;
     text-align: center;
-    z-index:900;
+    z-index: 900;
 }
 
-#navigation ul {
-    list-style-type: none;
-    height: 40px;
-    width: 80%;
-    margin:auto;
-    background-color: black;
-    opacity: 0.8;
+.overlay-box {
+    opacity: 0.85;
     border-radius: 5px;
-    overflow:hidden;
+    margin: 2% auto;
+    width: 90%;
+    background-color: #fff;
 }
 
-#navigation ul li {
-    float: left;
-    display:inline-block;
-    width: 25%;
-    line-height: 40px;
-    text-decoration: none;
-    color: white;
-}
-
-#team_viewer{
-    margin:10px auto;
-    width:80%;
-
-    background-color: black;
-    opacity: 0.8;
-    border-radius: 5px;
-    color: white;
-}
-
-#team_viewer table{
-    width: 95%;
-}
-
-#team_viewer table td {
-    padding:8px;
+.overlay-content {
+    padding:40px;
+    font-size:18px;
+    font-weight:200px;
+    line-height:30px;
 }
