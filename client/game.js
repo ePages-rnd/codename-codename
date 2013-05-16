@@ -10,5 +10,5 @@ Template.game.events({
 
 Template.game.currentposition = function () {
     var pos = Session.get('currentposition');
-    return 'x: ' + pos.x + ' y: ' + pos.y;
+    return 'lat: ' + pos.lat + ' long: ' + pos.long;
 };

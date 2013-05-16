@@ -15,6 +15,10 @@ window.cmiyc = window.cmiyc || {};
 
 window.cmiyc.initialize = function () {
     gmaps = window.google.maps;
+    Session.set('currentposition', {
+        'lat': 0,
+        'long': 0
+    });
 
     var mapOptions = {
         center: new gmaps.LatLng(40.77153, -73.97722),
@@ -44,8 +48,8 @@ window.cmiyc.initialize = function () {
         var pos = new gmaps.LatLng(lat, lon);
 
         Session.set('currentposition', {
-            x: lat,
-            y: lon
+            'lat': lat,
+            'long': lon
         });
 
         map.panTo(pos);
@@ -55,7 +59,7 @@ window.cmiyc.initialize = function () {
     }, {
         enableHighAccuracy: true,
         timeout: 5000,
-        maximumAge: 30000
+        maximumAge: 1000
     });
 
 };

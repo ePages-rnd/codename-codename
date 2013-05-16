@@ -30,3 +30,7 @@ body {
     font-weight:200px;
     line-height:30px;
 }
+
+body {
+    padding: 0px !important;
+}

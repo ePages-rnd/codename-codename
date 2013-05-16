@@ -55,10 +55,8 @@ Meteor.methods({
     createGame: function (options) {
         options = options || {};
         var user = options.user;
-        var location = {
-            'x': 150,
-            'y': 120
-        };
+        var location = options.location;
+
         return Games.insert({
             'state': 'searching',
             'gamemaster': user,
