@@ -18,14 +18,24 @@ window.cmiyc.initialize = function () {
 
     var mapOptions = {
         center: new gmaps.LatLng(40.77153, -73.97722),
-        zoom: 4,
+        zoom: 16,
         disableDefaultUI: true,
-        mapTypeId: gmaps.MapTypeId.SATELLITE
+        mapTypeId: gmaps.MapTypeId.ROADMAP,
+        scaleControl: false,
+        draggable: false,
+        scrollwheel: false,
+        styles: [{
+            "elementType": "labels",
+            "stylers": [{
+                "visibility": "off"
+            }]
+        }]
     };
     map = new gmaps.Map(document.getElementById('map_canvas'), mapOptions);
     var zoomservice = new gmaps.MaxZoomService();
 
     window.navigator.geolocation.watchPosition(
+
     function (g) {
         console.log(g);
         var lat = g.coords.latitude;
@@ -33,13 +43,13 @@ window.cmiyc.initialize = function () {
 
         var pos = new gmaps.LatLng(lat, lon);
 
-        Session.set('currentposition', {x:lat,y:lon});
-
-        map.panTo(pos,5000);
-
-        zoomservice.getMaxZoomAtLatLng(pos, function(maxzoomresult) {
-            map.setZoom(maxzoomresult.zoom-4);
+        Session.set('currentposition', {
+            x: lat,
+            y: lon
         });
+
+        map.panTo(pos);
+
     }, function () {
         console.log(arguments);
     }, {

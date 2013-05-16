@@ -34,8 +34,8 @@ Spots = new Meteor.Collection('Spots');
  *      }
  * }
  */
-Players = new Meteor.Collection('Players');
 
+Players = new Meteor.Collection('Players');
 /*
     gameid
     gamemaster
