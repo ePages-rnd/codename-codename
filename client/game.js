@@ -30,7 +30,12 @@ Meteor.startup(function () {
                 marker = new google.maps.Marker({
                     position: position,
                     map: map,
-                    icon: 'player.png'
+                    icon: {
+                        url: 'player.png',
+                        size: new google.maps.Size(16, 16),
+                        origin: new google.maps.Point(0, 0),
+                        anchor: new google.maps.Point(8, 8)
+                    }
                 });
 
                 players[player._id] = marker;
@@ -64,10 +69,16 @@ Meteor.startup(function () {
                 if (mindistance === min_distance) {
                     var icon = (team === myteam) ? 'team1_spot.png' : 'team2_spot.png';
                     var color = (team === myteam) ? '#00FF00' : '#FF0000';
+                    var image = {
+                        url: icon,
+                        size: new google.maps.Size(16, 16),
+                        origin: new google.maps.Point(0, 0),
+                        anchor: new google.maps.Point(8, 8)
+                    };
                     var marker = new google.maps.Marker({
                         position: position,
                         map: map,
-                        icon: icon
+                        icon: image
                     });
 
                     spots[spot._id] = {
