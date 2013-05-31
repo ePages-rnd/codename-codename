@@ -1,28 +1,77 @@
 /*global Meteor*/
 
-/*global Games, Players, Teams*/
+/*global Games, Players, Teams, Spots*/
 'use strict';
 Meteor.publish('AvailableGames', function (currentgame) {
-    return Games.find({$or: [
-            {'_id': currentgame},
-            {'state': 'searching'}
-        ]
+    return Games.find({
+        $or: [{
+            '_id': currentgame
+        }, {
+            'state': 'searching'
+        }]
     });
 });
 
 Meteor.publish('CurrentGameTeams', function (gameid) {
     var game = Games.findOne(gameid);
-    if(! game) { return; }
-    return Teams.find({ $or: [{'_id': game.team1}, {'_id': game.team2}] });
+    if (!game) {
+        return;
+    }
+    return Teams.find({
+        $or: [{
+            '_id': game.team1
+        }, {
+            '_id': game.team2
+        }]
+    });
 });
 
-Meteor.publish('MyTeam', function ( teamid ) {
+Meteor.publish('MyTeam', function (teamid) {
     var team = Teams.findOne(teamid);
-    if(!team) { return; }
-    return Players.find( {'_id': {$in: team.players} } );
+    if (!team) {
+        return;
+    }
+
+    return Players.find({
+        '_id': {
+            $in: team.players
+        }
+    });
+});
+
+Meteor.publish('GameSpots', function (gameid) {
+    var game = Games.findOne(gameid);
+    if (!game) {
+        return;
+    }
+
+    return Spots.find({
+        $or: [{
+            'team': game.team1
+        }, {
+            'team': game.team2
+        }]
+    });
 });
 
 Meteor.startup(function () {
+    var setSpotDelay = function (username, team) {
+            var setSpot = function () {
+                    var player = Players.findOne(username);
+                    if (!player) {
+                        return;
+                    }
+
+                    Meteor.call('createSpot', {
+                        'teamid': team,
+                        'player': username,
+                        'position': player.position
+                    });
+                };
+
+            Meteor.setInterval(setSpot, 1000);
+        };
+
     Games.find().observe({
         'added': function (game) {
             var gameid = game._id;
@@ -45,7 +94,12 @@ Meteor.startup(function () {
                 Meteor.call('joinGame', {
                     'gameid': gameid,
                     'user': playerid
+                }, function (error, result) {
+                    if (!error) {
+                        setSpotDelay(username, result.team);
+                    }
                 });
+
             }
 
         }
@@ -77,6 +131,7 @@ Meteor.startup(function () {
                 position.long -= diff;
             }
 
+
             Players.update(playerid, {
                 $set: {
                     'position': position
@@ -91,5 +146,5 @@ Meteor.startup(function () {
         };
 
 
-    Meteor.setInterval(changePositions, 150);
+    Meteor.setInterval(changePositions, 100);
 });

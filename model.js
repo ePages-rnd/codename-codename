@@ -20,6 +20,7 @@ Teams = new Meteor.Collection('Teams');
 /*
  * {
  *      'team': 'team123',
+ *      'player': 'player123',
  *      'position': {
  *          'x': 123,
  *          'y': 456
@@ -121,5 +122,22 @@ Meteor.methods({
         Teams.update(teamid, {
             $pull: {'players':user}
         });
+    },
+    createSpot: function (options) {
+        options = options || {};
+        //var gameid = options.gameid;
+        var teamid = options.teamid;
+        var player = options.player;
+        var position = options.position;
+
+        // check check check
+
+        var spotid = Spots.insert({
+            'team': teamid,
+            'player': player,
+            'position': position
+        });
+
+        return spotid;
     }
 });
