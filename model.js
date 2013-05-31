@@ -1,16 +1,19 @@
 /*global Meteor*/
+/*global Games, Teams, Spots, Players*/
+
+
 
 /*
  * state        - searching, full, playing, over
  * gamermaster  - user5
  * location     - x, y
- * team1        - [user5, user3, user2]
- * team2        - [user4, user1]
+ * team1        - 1234
+ * team2        - 3423
  */
 Games = new Meteor.Collection('Games');
 
 /*
-
+ * [player1_id, player2_id]
  */
 Teams = new Meteor.Collection('Teams');
 
@@ -34,22 +37,10 @@ Spots = new Meteor.Collection('Spots');
  *      }
  * }
  */
-
 Players = new Meteor.Collection('Players');
-/*
-    gameid
-    gamemaster
-    position
 
-    team1 id
-    team2 id
-*/
 
-/*
-    Teams
-
-    [player1, ...]
-*/
+'use strict';
 
 Meteor.methods({
     createGame: function (options) {
@@ -57,13 +48,25 @@ Meteor.methods({
         var user = options.user;
         var location = options.location;
 
-        return Games.insert({
+        var team1 = Teams.insert({
+            'players': [user]
+        });
+
+        var team2 = Teams.insert({
+            'players': []
+        });
+
+        var gameid = Games.insert({
             'state': 'searching',
             'gamemaster': user,
             'location': location,
-            'team1': [user],
-            'team2': []
+            'team1': team1,
+            'team2': team2
         });
+        return {
+            'game' : gameid,
+            'team' : team1
+        }
     },
     startGame: function (options) {
         options = options || {};
@@ -82,40 +85,41 @@ Meteor.methods({
         var game = Games.findOne(gameid);
         var user = options.user;
 
+        var team1 = Teams.findOne( game.team1 );
+        var team2 = Teams.findOne( game.team2 );
+
         // check that game is searching
 
         // check that player isnt in game
 
         // check that game isnt full
 
-        if(game.team1.length > game.team2.length) {
-            Games.update(gameid, {
-                $addToSet: {team2: user}
-            });
-        }else {
-            Games.update(gameid, {
-                $addToSet: {team1: user}
-            });
-        }
+        var teamtojoin = team1.players.length > team2.players.length ? game.team2 : game.team1;
+
+        Teams.update(teamtojoin, {
+            $addToSet: {players: user}
+        });
+
+        return {
+            'game' : gameid,
+            'team' : teamtojoin
+        };
     },
     leaveGame: function (options) {
         options = options || {};
         var gameid = options.gameid;
+        var teamid = options.teamid;
+        var user = options.user;
 
         var game = Games.findOne(gameid);
-        var user = options.user;
 
         if (user === game.gamemaster) {
             Games.remove(gameid);
             return;
         }
 
-        Games.update(gameid, {
-            $pull: {'team1':user}
-        });
-
-        Games.update(gameid, {
-            $pull: {'team2':user}
+        Teams.update(teamid, {
+            $pull: {'players':user}
         });
     }
 });

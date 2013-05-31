@@ -1,5 +1,5 @@
 /*global Template, Session, Meteor*/
-/*global Games*/
+/*global Games, Teams*/
 'use strict';
 
 Template.wait.events({
@@ -19,6 +19,7 @@ Template.wait.events({
     'click #leave-game-btn': function () {
 
         var gameid = Session.get('currentgame');
+        var teamid = Session.get('currentteam');
         if (!gameid) {
             Meteor.Error(413, 'no game selected');
         }
@@ -26,6 +27,7 @@ Template.wait.events({
         var user = Session.get('username');
         Meteor.call('leaveGame', {
             'gameid': gameid,
+            'teamid': teamid,
             'user': user
         }, function (error, game) {
             if (!error) {
@@ -40,15 +42,25 @@ Template.wait.playerlist = function () {
     var gameid = Session.get('currentgame');
     var game = Games.findOne(gameid);
 
-    if (!game) return [];
+    if (!game) {
+        return [];
+    }
 
-    var team1 = game.team1;
-    var team2 = game.team2;
+    var team1_id = game.team1;
+    var team2_id = game.team2;
+
+    var team1 = Teams.findOne(team1_id);
+    var team2 = Teams.findOne(team2_id);
+
+    if(!team1 || !team2) {
+        return [];
+    }
+
     var result = [];
-    while (team1.length || team2.length) {
+    while (team1.players.length || team2.players.length) {
         result.push({
-            'user1': team1.shift() || '',
-            'user2': team2.shift() || ''
+            'user1': team1.players.shift() || '',
+            'user2': team2.players.shift() || ''
         });
     }
 
@@ -59,7 +71,9 @@ Template.wait.isgamecreator = function () {
     var gameid = Session.get('currentgame');
     var game = Games.findOne(gameid);
 
-    if (!game) return false;
+    if (!game) {
+        return false;
+    }
     return game.gamemaster === Session.get('username');
 };
 
@@ -67,7 +81,8 @@ Template.wait.gamenotready = function () {
     var gameid = Session.get('currentgame');
     var game = Games.findOne(gameid);
 
-    if (!game) return true;
+    if (!game) {
+        return true;
+    }
     return !(game.team1.length + game.team2.length > 5 && Math.abs(game.team1.length - game.team2.length) < 2);
 };
-
