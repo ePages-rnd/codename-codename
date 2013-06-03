@@ -9,4 +9,6 @@ accounts-ui
 accounts-password
 bootstrap
 jquery
+underscore
+backbone
 random
