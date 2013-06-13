@@ -10,6 +10,7 @@ function getRandomInt(min, max) {
 
 Meteor.methods({
     _startGameServer: function (options) {
+        var intervalid;
         options = options || {};
         var gameid = options.gameid;
         var game = Games.findOne(gameid);
@@ -101,14 +102,9 @@ Meteor.methods({
                         Areas.remove(oarea._id);
                     }
                 });
-
-
-                console.log('area created');
             },
             'removed': function (area) {
                 delete areas[area._id];
-
-                console.log('area deleted');
             }
         });
 
@@ -159,19 +155,32 @@ Meteor.methods({
                             Players.update(player, {'$set':{'dead': true}});
                             console.log('player is dead');
                         }else {
-                            if(!inEnemyArea(player, enemyteam )) {//|| nearbyPlayer(player, team)
+                            if(!inEnemyArea(player, enemyteam)) {//|| nearbyPlayer(player, team
                                 Players.update(player, {'$unset':{'enterEnemyArea': ''}});
                             }
                         }
 
                     }else {
                         //check if player enters enemy area
-                        if(inEnemyArea(player, enemyteam)) {//&& !nearbyPlayer(player, team)
+                        if(inEnemyArea(player, enemyteam )) {//&& !nearbyPlayer(player, team)
 
                             Players.update(player, {'$set':{'enterEnemyArea': time}});
                         }
                     }
                 }
+            };
+
+            var teamstatus = function(team) {
+                var dead = true;
+                team.players.forEach(function(playerid) {
+                    if(!dead) {return;}
+                    var player = Players.findOne(playerid);
+                    if(!player) {return;}
+                    if(!player.dead) {
+                        dead = false;
+                    }
+                });
+                return dead;
             };
             team1.players.forEach(function(playerid) {
                 setPlayerStatus(playerid, team1._id, team2._id);
@@ -179,6 +188,16 @@ Meteor.methods({
             team2.players.forEach(function(playerid) {
                 setPlayerStatus(playerid, team2._id, team1._id);
             });
+
+            var team1dead = teamstatus(team1);
+            var team2dead = teamstatus(team1);
+
+            if(team1dead || team2dead) {
+                Meteor.clearInterval(intervalid);
+                intervalid = undefined;
+                Games.update(gameid, {'$set': {'state':'over'}});
+                // game is over
+            }
         }
 
         var startBot = function (username, team) {
@@ -229,7 +248,7 @@ Meteor.methods({
 
                 function botloop() {
                     player = Players.findOne(username);
-                    if(player.dead) {
+                    if(player.dead || !intervalid) {
                         Meteor.clearInterval(botintervalid);
                     }else {
                         step++;
@@ -270,6 +289,6 @@ Meteor.methods({
         team1 = Teams.findOne(game.team1);
         team2 = Teams.findOne(game.team2);
 
-        var intervalid = Meteor.setInterval(gameloop, 100);
+        intervalid = Meteor.setInterval(gameloop, 100);
     }
 });

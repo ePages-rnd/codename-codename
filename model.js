@@ -57,8 +57,8 @@ Spots.distance = function (pos1, pos2) {
  */
 Players = new Meteor.Collection('Players');
 
-Players.MAX_TIME_ENEMY = 5;
-Players.MAX_DISTANCE_ENEMY_AREA = 50;
+Players.MAX_TIME_ENEMY = 10;
+Players.MAX_DISTANCE_ENEMY_AREA = 25;
 
 /*
  * {
@@ -163,6 +163,7 @@ Meteor.methods({
         var team1 = Teams.findOne(game.team1);
         var team2 = Teams.findOne(game.team2);
 
+        if(!team1 || !team2) {return;}
         // check that game is searching
         // check that player isnt in game
         // check that game isnt full

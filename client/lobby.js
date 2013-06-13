@@ -66,12 +66,9 @@ Template.search.games = function () {
 Template.search.distance = function (origin) {
     if (!google.maps) { return 0; }
 
-    var positon = Session.get('currentposition');
+    var position = Session.get('currentposition');
 
-    var to = new google.maps.LatLng(positon.lat, positon.long);
-    var from = new google.maps.LatLng(origin.lat, origin.long);
-
-    var distance = google.maps.geometry.spherical.computeDistanceBetween(from, to);
+    var distance = Spots.distance(position, origin);
 
     if( distance > 1000) {
         return Math.round( distance / 100 ) / 10 + ' km';
