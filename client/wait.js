@@ -13,6 +13,7 @@ Template.wait.events({
         }, function (error, game) {
             if (!error) {
                 Session.set('state', 'game');
+                Meteor.subscribe('MyTeam', Session.get('currentteam'));
             }
         });
     },

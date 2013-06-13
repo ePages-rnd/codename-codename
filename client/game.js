@@ -1,57 +1,112 @@
 /*global window, google*/
 /*global Meteor, Session, Template*/
-/*global Players, Spots*/
+/*global Players, Spots, Areas*/
 'use strict';
-var min_distance = 150;
-var min_distance_enemy = 50;
-var max_distance = 300;
-
-var MapSpot = Backbone.Model.extend({
-
-});
-
-var MapSpots = Backbone.Collection.extend({
-    model: MapSpot
-});
-
-var MyMapSpots = new MapSpots();
+var players = {};
 
 Template.game.events({
     'click #create-spot-btn': function () {
-        console.log(Session.get('currentposition'));
+        Meteor.call('createSpot', {
+            gameid: Session.get('curremtgame'),
+            teamid: Session.get('currentteam'),
+            player: Session.get('username'),
+            position: Session.get('currentposition')
+        }, function (error, result) {
+
+        });
     }
 });
 
 Template.game.currentposition = function () {
     var pos = Session.get('currentposition');
+    var playerid = Session.get('username');
+
+    var map = window.cmiyc.map;
+    var marker = players[playerid];
+
+    if (!marker) {
+        var position = new google.maps.LatLng(pos.lat, pos.long);
+
+        //createMarker
+        marker = new google.maps.Marker({
+            position: position,
+            map: map
+        });
+
+        players[playerid] = marker;
+    } else {
+        marker.setPosition(position);
+    }
+
     return 'lat: ' + pos.lat + ' long: ' + pos.long;
 };
 
 Meteor.startup(function () {
-    var players = {};
+    var spots = {};
+    var areas = {};
+
+    var mapcords = function (cords) {
+            return new google.maps.LatLng(cords.lat, cords.long);
+        };
+
+    var playericon = {
+        url: 'player.png',
+        size: new google.maps.Size(16, 16),
+        origin: new google.maps.Point(0, 0),
+        anchor: new google.maps.Point(8, 8)
+    };
+    var playericonwarn = {
+        url: 'player_warn.png',
+        size: new google.maps.Size(16, 16),
+        origin: new google.maps.Point(0, 0),
+        anchor: new google.maps.Point(8, 8)
+    };
+
+    var playericondead = {
+        url: 'player_dead.png',
+        size: new google.maps.Size(16, 16),
+        origin: new google.maps.Point(0, 0),
+        anchor: new google.maps.Point(8, 8)
+    };
 
 
     Players.find().observe({
-        'changed': function (old, player) {
+        'changed': function (player, old) {
             var map = window.cmiyc.map;
             var marker = players[player._id];
             var position = new google.maps.LatLng(player.position.lat, player.position.long);
+            var status = player.dead ? 'dead' : player.enterEnemyArea ? 'warn' : '';
+            var oldstatus = old.dead ? 'dead' : old.enterEnemyArea ? 'warn' : '';
+            if (player._id === Session.get('username')) {
+                if (player.dead) {
+                    $('.overlay').css('background', 'rgba(255, 0, 0, .7)');
+                } else if (player.enterEnemyArea) {
+                    $('.overlay').css('background', 'rgba(255, 0, 0, .3)');
+                } else {
+                    $('.overlay').css('background', 'rgba(255, 0, 0, .00001)');
+                }
+            }
 
             if (!marker) {
                 //createMarker
                 marker = new google.maps.Marker({
                     position: position,
                     map: map,
-                    icon: {
-                        url: 'player.png',
-                        size: new google.maps.Size(16, 16),
-                        origin: new google.maps.Point(0, 0),
-                        anchor: new google.maps.Point(8, 8)
-                    }
+                    icon: playericon
                 });
 
                 players[player._id] = marker;
             } else {
+                if(status !== oldstatus) {
+                    if(status === 'dead') {
+                        marker.setIcon(playericondead);
+                    }else if(status === 'warn') {
+                        marker.setIcon(playericonwarn);
+                    }else {
+                        marker.setIcon(playericon);
+                    }
+                }
+
                 marker.setPosition(position);
             }
         }
@@ -63,78 +118,56 @@ Meteor.startup(function () {
             var team = spot.team;
             var myteam = Session.get('currentteam');
 
-            var map_spot = MyMapSpots.get(spot._id); //spots[spot._id];
-            if (!map_spot) {
-                console.log('new spot')
-                var position = new google.maps.LatLng(spot.position.lat, spot.position.long);
+            var position = spot.position;
 
-                var distances = {};
+            var icon = (team === myteam) ? 'team1_spot.png' : 'team2_spot.png';
+            var color = (team === myteam) ? '#00FF00' : '#FF0000';
+            var image = {
+                url: icon,
+                size: new google.maps.Size(16, 16),
+                origin: new google.maps.Point(0, 0),
+                anchor: new google.maps.Point(8, 8)
+            };
+            var marker = new google.maps.Marker({
+                position: mapcords(position),
+                map: map,
+                icon: image
+            });
 
-                var mindistance = min_distance;
-                var violates_distances = false;
+            spots[spot._id] = marker;
+        },
+        'removed': function (spot) {
+            spots[spot._id].setMap(null);
+        }
+    });
 
-                MyMapSpots.forEach(function (ms) {
-                    var distance = google.maps.geometry.spherical.computeDistanceBetween(position, ms.get('position'));
-                    distances[ms.get('id')] = distance;
-                    if ((ms.get('team') === team && distance < min_distance) || distance < min_distance_enemy) {
-                        violates_distances = true;
-                    }
-                });
+    Areas.find().observe({
+        'added': function (area) {
+            var map = window.cmiyc.map;
+            var spot1 = Spots.findOne(area.spots[0]);
+            var spot2 = Spots.findOne(area.spots[1]);
+            var spot3 = Spots.findOne(area.spots[2]);
+            var myteam = Session.get('currentteam');
 
-                if (!violates_distances) {
-                    var icon = (team === myteam) ? 'team1_spot.png' : 'team2_spot.png';
-                    var color = (team === myteam) ? '#00FF00' : '#FF0000';
-                    var image = {
-                        url: icon,
-                        size: new google.maps.Size(16, 16),
-                        origin: new google.maps.Point(0, 0),
-                        anchor: new google.maps.Point(8, 8)
-                    };
-                    var marker = new google.maps.Marker({
-                        position: position,
-                        map: map,
-                        icon: image
-                    });
+            var color = (area.team === myteam) ? '#00FF00' : '#FF0000';
 
-                    MyMapSpots.add({
-                        'id': spot._id,
-                        'marker': marker,
-                        'position': position,
-                        'team': team
-                    });
+            var triangleCoords = [mapcords(spot1.position), mapcords(spot2.position), mapcords(spot3.position), mapcords(spot1.position)];
 
-                    var nearbyspots = {};
-                    for (var key in distances) {
-                        if (distances[key] < max_distance && MyMapSpots.get(key).get('team') === team) {
-                            nearbyspots[key] = 1;
-                        }
-                    }
-                    for (var key1 in nearbyspots) {
-                        for (var key2 in nearbyspots) {
-                            if (key1 !== key2) {
-                                var spot1 = MyMapSpots.get(key1);
-                                var spot2 = MyMapSpots.get(key2);
-                                if (google.maps.geometry.spherical.computeDistanceBetween(spot1.get('position'), spot2.get('position')) < max_distance) {
-                                    var triangleCoords = [position, spot1.get('position'), spot2.get('position'), position];
+            var triangle = new google.maps.Polygon({
+                paths: triangleCoords,
+                strokeColor: color,
+                strokeOpacity: 0.8,
+                strokeWeight: 2,
+                fillColor: color,
+                fillOpacity: 0.35
+            });
 
-                                    var triangle = new google.maps.Polygon({
-                                        paths: triangleCoords,
-                                        strokeColor: color,
-                                        strokeOpacity: 0.8,
-                                        strokeWeight: 2,
-                                        fillColor: color,
-                                        fillOpacity: 0.35
-                                    });
+            triangle.setMap(map);
 
-                                    triangle.setMap(map);
-                                }
-                            }
-                        }
-                    }
-
-
-                }
-            }
+            areas[area._id] = triangle;
+        },
+        'removed': function (area) {
+            areas[area._id].setMap(null);
         }
     });
 

@@ -8,14 +8,14 @@ Template.login.events({
         Session.set('state', 'lobby');
 
         var position = {
-            'lat' : 0,
-            'long' : 0
+            'lat': 50.927054,
+            'long': 11.589237
         };
 
         Players.insert({
-            '_id'      : username,
-            'username' : username,
-            'position' : position
+            '_id': username,
+            'username': username,
+            'position': position
         });
 
         window.navigator.geolocation.watchPosition(function (g) {
@@ -29,8 +29,10 @@ Template.login.events({
                 'lat': lat,
                 'long': long
             });
-
-            Players.update(username, {$set: {'position': position}});
+            var player = Players.findOne(username);
+            if (player) {
+                player.position = pos;
+            }
 
             map.panTo(pos);
 

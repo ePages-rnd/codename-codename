@@ -12,6 +12,7 @@ Deps.autorun(function () {
     Meteor.subscribe('CurrentGameTeams', Session.get('currentgame'));
     Meteor.subscribe('MyTeam', Session.get('currentteam'));
     Meteor.subscribe('GameSpots', Session.get('currentgame'));
+    Meteor.subscribe('GameAreas', Session.get('currentgame'));
 });
 
 Meteor.startup(function () {

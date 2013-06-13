@@ -42,6 +42,7 @@ Template.search.events({
                     'changed': function (new_obj, old_obj) {
                         if (new_obj.state === 'playing') {
                             Session.set('state', 'game');
+                            Meteor.subscribe('MyTeam', Session.get('currentteam'));
                         }
                     },
                     'removed': function () {
