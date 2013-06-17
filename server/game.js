@@ -17,8 +17,11 @@ Meteor.methods({
         var team1 = Teams.findOne(game.team1);
         var team2 = Teams.findOne(game.team2);
 
+        var gameover = false;
+
         var gamespots = {};
         var areas = {};
+        var gamestep = 0;
 
         Spots.find({
             $or: [{
@@ -46,10 +49,10 @@ Meteor.methods({
 
                                 Meteor.call('createArea', {
                                     game: gameid,
-                                    team:spot.team,
-                                    spot1:spot._id,
-                                    spot2:spot1._id,
-                                    spot3:spot2._id
+                                    team: spot.team,
+                                    spot1: spot._id,
+                                    spot2: spot1._id,
+                                    spot3: spot2._id
                                 });
                             }
                         }
@@ -59,15 +62,19 @@ Meteor.methods({
                 gamespots[spot._id] = spot;
             },
             'removed': function (spot) {
+                Meteor.call('removePoints', {
+                    'teamid': spot.team,
+                    'points': 3
+                });
                 delete gamespots[spot._id];
             }
         });
 
         Areas.find({
-            $or: [{
-                team: game.team1
+            '$or': [{
+                'team': game.team1
             }, {
-                team: game.team2
+                'team': game.team2
             }]
         }).observe({
             'added': function (area) {
@@ -75,6 +82,10 @@ Meteor.methods({
                 var spot1 = Spots.findOne(area.spots[0]);
                 var spot2 = Spots.findOne(area.spots[1]);
                 var spot3 = Spots.findOne(area.spots[2]);
+
+                if (!spot1 || !spot2 || !spot3) {
+                    return;
+                }
 
                 var oppositeteam = area.team === game.team1 ? game.team2 : game.team1;
 
@@ -89,22 +100,42 @@ Meteor.methods({
                     }
                 });
 
-                Areas.find({team:oppositeteam}).forEach(function(oarea) {
+                Areas.find({
+                    team: oppositeteam
+                }).forEach(function (oarea) {
                     var a = Spots.findOne(oarea.spots[0]);
                     var b = Spots.findOne(oarea.spots[1]);
                     var c = Spots.findOne(oarea.spots[2]);
 
-                    if(!a || !b || !c) {
+                    if (!a || !b || !c) {
                         return;
                     }
 
-                    if(Areas.intersect(spot1.position, spot2.position, spot3.position, a.position, b.position, c.position)) {
+                    if (Areas.intersect(spot1.position, spot2.position, spot3.position, a.position, b.position, c.position)) {
                         Areas.remove(oarea._id);
                     }
                 });
             },
             'removed': function (area) {
+                Meteor.call('removePoints', {
+                    'teamid': area.team,
+                    'points': 10
+                });
                 delete areas[area._id];
+            }
+        });
+
+        Teams.find({
+            '$or': [{
+                '_id': game.team1
+            }, {
+                '_id': game.team2
+            }]
+        }).observe({
+            'changed': function (team, oldteam) {
+                if (team.points <= 0) {
+                    gameover = true;
+                }
             }
         });
 
@@ -114,90 +145,140 @@ Meteor.methods({
             var time = new Date().getTime();
             var playerid;
 
-            var inEnemyArea = function(player, enemyteam) {
-                var result = false;
-                Areas.find({team:enemyteam}).forEach(function(area) {
-                    if(result) { return; }
-                    var a = Spots.findOne(area.spots[0]);
-                    var b = Spots.findOne(area.spots[1]);
-                    var c = Spots.findOne(area.spots[2]);
-
-                    if(!a || !b || !c) {
-                        return;
-                    }
-                    result = result || Areas.contains(a, b, c, player.position);
-                });
-                return result;
-            };
-
-            var nearbyPlayer = function(player, teamid) {
-                var playerid, result;
-                var team = Teams.findOne(teamid);
-                team.players.forEach(function(playerid) {
-                    if (result) {return;}
-                    if(playerid !== player._id) {
-                        var oplayer = Players.findOne( playerid );
-                        var distance = Spots.distance(player.position, oplayer.position);
-                        if(distance < Players.MAX_DISTANCE_ENEMY_AREA) {
-                            result = result || true;
+            var inEnemyArea = function (player, enemyteam) {
+                    var result = false;
+                    Areas.find({
+                        team: enemyteam
+                    }).forEach(function (area) {
+                        if (result) {
+                            return;
                         }
-                    }
-                });
-                return result;
-            };
+                        var a = Spots.findOne(area.spots[0]);
+                        var b = Spots.findOne(area.spots[1]);
+                        var c = Spots.findOne(area.spots[2]);
 
-            var setPlayerStatus = function (playerid, team, enemyteam) {
-                var player = Players.findOne(playerid);
-                if(!player.dead) {
-                    if(player.enterEnemyArea) {
-                        //check if player is dead now
-                        if((time-player.enterEnemyArea) > Players.MAX_TIME_ENEMY * 1000) {
-                            Players.update(player, {'$set':{'dead': true}});
-                            console.log('player is dead');
-                        }else {
-                            if(!inEnemyArea(player, enemyteam)) {//|| nearbyPlayer(player, team
-                                Players.update(player, {'$unset':{'enterEnemyArea': ''}});
+                        if (!a || !b || !c) {
+                            return;
+                        }
+                        result = result || Areas.contains(a, b, c, player.position);
+                    });
+                    return result;
+                };
+
+            var nearbyPlayer = function (player, teamid) {
+                    var playerid, result;
+                    var team = Teams.findOne(teamid);
+                    team.players.forEach(function (playerid) {
+                        if (result) {
+                            return;
+                        }
+                        if (playerid !== player._id) {
+                            var oplayer = Players.findOne(playerid);
+                            var distance = Spots.distance(player.position, oplayer.position);
+                            if (distance < Players.MAX_DISTANCE_ENEMY_AREA) {
+                                result = result || true;
                             }
                         }
+                    });
+                    return result;
+                };
 
-                    }else {
-                        //check if player enters enemy area
-                        if(inEnemyArea(player, enemyteam )) {//&& !nearbyPlayer(player, team)
+            var setPlayerStatus = function (playerid, team, enemyteam) {
+                    var player = Players.findOne(playerid);
+                    if (!player.dead) {
+                        if (player.enterEnemyArea) {
+                            //check if player is dead now
+                            if ((time - player.enterEnemyArea) > Players.MAX_TIME_ENEMY * 1000) {
+                                Players.update(player, {
+                                    '$set': {
+                                        'dead': true
+                                    }
+                                });
+                                Meteor.call('removePoints', {
+                                    'teamid': team,
+                                    'points': 50
+                                });
+                                console.log('player is dead');
+                            } else {
+                                if (!inEnemyArea(player, enemyteam)) { //|| nearbyPlayer(player, team
+                                    Players.update(player, {
+                                        '$unset': {
+                                            'enterEnemyArea': ''
+                                        }
+                                    });
+                                }
+                            }
 
-                            Players.update(player, {'$set':{'enterEnemyArea': time}});
+                        } else {
+                            //check if player enters enemy area
+                            if (inEnemyArea(player, enemyteam)) { //&& !nearbyPlayer(player, team)
+                                Players.update(player, {
+                                    '$set': {
+                                        'enterEnemyArea': time
+                                    }
+                                });
+                            }
                         }
                     }
-                }
-            };
+                };
 
-            var teamstatus = function(team) {
-                var dead = true;
-                team.players.forEach(function(playerid) {
-                    if(!dead) {return;}
-                    var player = Players.findOne(playerid);
-                    if(!player) {return;}
-                    if(!player.dead) {
-                        dead = false;
-                    }
-                });
-                return dead;
-            };
-            team1.players.forEach(function(playerid) {
+            var teamstatus = function (team) {
+                    var dead = true;
+                    team.players.forEach(function (playerid) {
+                        if (!dead) {
+                            return;
+                        }
+                        var player = Players.findOne(playerid);
+                        if (!player) {
+                            return;
+                        }
+                        if (!player.dead) {
+                            dead = false;
+                        }
+                    });
+                    return dead;
+                };
+            team1.players.forEach(function (playerid) {
                 setPlayerStatus(playerid, team1._id, team2._id);
             });
-            team2.players.forEach(function(playerid) {
+            team2.players.forEach(function (playerid) {
                 setPlayerStatus(playerid, team2._id, team1._id);
             });
 
             var team1dead = teamstatus(team1);
             var team2dead = teamstatus(team1);
 
-            if(team1dead || team2dead) {
+            if (team1dead || team2dead || gameover) {
                 Meteor.clearInterval(intervalid);
                 intervalid = undefined;
-                Games.update(gameid, {'$set': {'state':'over'}});
+
                 // game is over
+                Meteor.call('_stopGameServer', {
+                    gameid: gameid
+                });
             }
+            if (gamestep % 3 === 0) {
+                // decrease the points of the teams
+                var team1spots = Spots.find({
+                    team: team1._id
+                }).count();
+                var team2spots = Spots.find({
+                    team: team2._id
+                }).count();
+
+                if (team1spots > team2spots) {
+                    Meteor.call('removePoints', {
+                        'teamid': team2._id,
+                        'points': 1
+                    });
+                } else if (team2spots > team1spots) {
+                    Meteor.call('removePoints', {
+                        'teamid': team1._id,
+                        'points': 1
+                    });
+                }
+            }
+            gamestep++;
         }
 
         var startBot = function (username, team) {
@@ -224,7 +305,7 @@ Meteor.methods({
 
                         var position = player.position;
                         var change = getRandomInt(0, 3);
-                        var diff = Math.random() / 5000;
+                        var diff = Math.random() / 500;
                         if (change === 0) {
                             position.lat += diff;
                         }
@@ -248,28 +329,23 @@ Meteor.methods({
 
                 function botloop() {
                     player = Players.findOne(username);
-                    if(player.dead || !intervalid) {
+                    if (player.dead || !intervalid || gameover) {
                         Meteor.clearInterval(botintervalid);
-                    }else {
+                    } else {
                         step++;
                         changePosition();
-                        if (step % 20 === 0) {
-                            setSpot();
-                        }
+                        setSpot();
                     }
                 }
-                botintervalid = Meteor.setInterval(botloop, 100);
+                botintervalid = Meteor.setInterval(botloop, 1000);
             };
 
 
         var i = 0;
         for (i = 0; i < Games.MAX_PLAYERS - (team1.players.length + team2.players.length); i++) {
-            var username = 'bot_' + gameid + '_' + i + '_' + Math.random();
+            var username = 'bot_' + gameid + '_' + i;
 
-            var position = {
-                'lat': 50.927054,
-                'long': 11.589237
-            };
+            var position = Games.START_POSITION;
 
             var playerid = Players.insert({
                 '_id': username,
@@ -289,6 +365,65 @@ Meteor.methods({
         team1 = Teams.findOne(game.team1);
         team2 = Teams.findOne(game.team2);
 
-        intervalid = Meteor.setInterval(gameloop, 100);
+        intervalid = Meteor.setInterval(gameloop, 1000);
+    },
+    _stopGameServer: function (options) {
+        options = options || {};
+        var gameid = options.gameid;
+
+        var game = Games.findOne(gameid);
+        var team1id = game.team1;
+        var team2id = game.team2;
+
+        var team1 = Teams.findOne(team1id);
+        var team2 = Teams.findOne(team2id);
+
+        Players.update({
+            '$or': [{
+                '_id': {
+                    '$in': team1.players
+                }
+            }, {
+                '_id': {
+                    '$in': team2.players
+                }
+            }]
+        }, {
+            '$unset': {
+                'dead': '',
+                'enterEnemyArea': ''
+            }
+        });
+
+
+        Games.update(gameid, {
+            '$set': {
+                'state': 'over'
+            }
+        });
+/*
+        Spots.remove({
+            '$or': [{
+                'team': team1id
+            }, {
+                'team': team2id
+            }]
+        });
+        Areas.remove({
+            '$or': [{
+                'team': team1id
+            }, {
+                'team': team2id
+            }]
+        });
+        Teams.remove({
+            '$or': [{
+                '_id': team1id
+            }, {
+                '_id': team2id
+            }]
+        });
+        Games.remove(gameid);
+        */
     }
 });

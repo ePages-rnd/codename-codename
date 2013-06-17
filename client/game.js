@@ -59,6 +59,23 @@ Template.game.events({
     }
 });
 
+Template.game.points = function() {
+    var gameid = Session.get('currentgame');
+    var game = Games.findOne(gameid);
+
+    var myteam = Session.get('currentteam');
+    var team1color = myteam === game.team1 ? '#00FF00' : '#FF0000';
+    var team2color = myteam === game.team2 ? '#00FF00' : '#FF0000';
+
+    if(!game) {return;}
+    var team1 = Teams.findOne(game.team1);
+    var team2 = Teams.findOne(game.team2);
+
+    if(!team1 || !team2) {return;}
+
+    return '<span style="color:' + team1color + '">' + team1.points + '</span> : <span style="color:' + team2color + '">' + team2.points + '</span>';
+}
+
 Meteor.startup(function () {
     var playericon = {
         url: 'player.png',

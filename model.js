@@ -1,6 +1,5 @@
 /*global Meteor*/
-/*global Games, Teams, Spots, Players*/
-
+/*global Games, Teams, Spots, Players, Areas*/
 
 /*
  * state        - searching, full, playing, over
@@ -12,12 +11,16 @@
 Games = new Meteor.Collection('Games');
 
 Games.MAX_PLAYERS = 12;
+Games.START_POSITION = {
+    'lat': 50.927054,
+    'long': 11.589237
+};
 
 /*
  * [player1_id, player2_id]
  */
 Teams = new Meteor.Collection('Teams');
-
+Teams.START_POINTS = 500;
 /*
  * {
  *      'team': 'team123',
@@ -29,6 +32,7 @@ Teams = new Meteor.Collection('Teams');
  * }
  */
 Spots = new Meteor.Collection('Spots');
+
 
 Spots.distance = function (pos1, pos2) {
 
@@ -44,7 +48,7 @@ Spots.distance = function (pos1, pos2) {
     var radtheta = rad(pos1.long - pos2.long);
     var dist = Math.sin(radlat1) * Math.sin(radlat2) + Math.cos(radlat1) * Math.cos(radlat2) * Math.cos(radtheta);
     return Math.acos(dist) * earthradius;
-}
+};
 
 /*
  * {
@@ -68,48 +72,47 @@ Players.MAX_DISTANCE_ENEMY_AREA = 25;
  */
 Areas = new Meteor.Collection('Areas');
 
-Areas.contains = function(spot1, spot2, spot3, x) {
-    var getSide = function(p1, p2, x) {
-        var side = (p2.lat - p1.lat) * (x.long - p1.long) - (x.lat - p1.lat) * (p2.long - p1.long);
-        return side === 0 ? 0 : side > 0 ? 1 : -1;
-    };
 
-    if(!spot1 || !spot2 || !spot3) {return false};
+Areas.contains = function (spot1, spot2, spot3, x) {
+    var getSide = function (p1, p2, x) {
+            var side = (p2.lat - p1.lat) * (x.long - p1.long) - (x.lat - p1.lat) * (p2.long - p1.long);
+            return side === 0 ? 0 : side > 0 ? 1 : -1;
+        };
+
+    if (!spot1 || !spot2 || !spot3) {
+        return false;
+    }
 
     var o1 = getSide(spot1.position, spot2.position, x);
     var o2 = getSide(spot2.position, spot3.position, x);
     var o3 = getSide(spot3.position, spot1.position, x);
 
-    return (o1 == o2) && (o2 == o3);
+    return (o1 === o2) && (o2 === o3);
 };
 
 
 Areas.intersect = function (a1, b1, c1, a2, b2, c2) {
     var CCW = function (p1, p2, p3) {
-      a = p1.long;
-      b = p1.lat;
-      c = p2.long;
-      d = p2.lat;
-      e = p3.long;
-      f = p3.lat;
+            var a = p1.long;
+            var b = p1.lat;
+            var c = p2.long;
+            var d = p2.lat;
+            var e = p3.long;
+            var f = p3.lat;
 
-      return (f - b) * (c - a) > (d - b) * (e - a);
-    };
+            return (f - b) * (c - a) > (d - b) * (e - a);
+        };
 
-    var cut = function(p1, p2, p3, p4) {
-        return (CCW(p1, p3, p4) != CCW(p2, p3, p4)) && (CCW(p1, p2, p3) != CCW(p1, p2, p4));
-    };
+    var cut = function (p1, p2, p3, p4) {
+            return (CCW(p1, p3, p4) !== CCW(p2, p3, p4)) && (CCW(p1, p2, p3) !== CCW(p1, p2, p4));
+        };
 
-    return cut(a1,b1,a2,b2) || cut(a1,b1,a2,c2) || cut(a1,b1,b2,c2) || cut(a1,c1,a2,b2) || cut(a1,c1,a2,c2) || cut(a1,c1,b2,c2);
-}
+    return cut(a1, b1, a2, b2) || cut(a1, b1, a2, c2) || cut(a1, b1, b2, c2) || cut(a1, c1, a2, b2) || cut(a1, c1, a2, c2) || cut(a1, c1, b2, c2);
+};
 
 Spots.MIN_DISTANCE = 150;
 Spots.MIN_DISTANCE_ENEMY = 50;
 Spots.MAX_DISTANCE = 300;
-
-
-
-'use strict';
 
 Meteor.methods({
     createGame: function (options) {
@@ -118,10 +121,12 @@ Meteor.methods({
         var location = options.location;
 
         var team1 = Teams.insert({
+            'points': Teams.START_POINTS,
             'players': [user]
         });
 
         var team2 = Teams.insert({
+            'points': Teams.START_POINTS,
             'players': []
         });
 
@@ -135,7 +140,7 @@ Meteor.methods({
         return {
             'game': gameid,
             'team': team1
-        }
+        };
     },
     startGame: function (options) {
         options = options || {};
@@ -163,7 +168,9 @@ Meteor.methods({
         var team1 = Teams.findOne(game.team1);
         var team2 = Teams.findOne(game.team2);
 
-        if(!team1 || !team2) {return;}
+        if (!team1 || !team2) {
+            return;
+        }
         // check that game is searching
         // check that player isnt in game
         // check that game isnt full
@@ -242,14 +249,14 @@ Meteor.methods({
         }
 
         // not in enemy territory
-
-
-        Areas.find({team:enemyteam}).forEach(function(area) {
+        Areas.find({
+            team: enemyteam
+        }).forEach(function (area) {
             var spot1 = Spots.findOne(area.spots[0]);
             var spot2 = Spots.findOne(area.spots[1]);
             var spot3 = Spots.findOne(area.spots[2]);
 
-            if(Areas.contains(spot1, spot2, spot3, position)) {
+            if (Areas.contains(spot1, spot2, spot3, position)) {
                 violates = true;
             }
         });
@@ -263,7 +270,6 @@ Meteor.methods({
             'position': position
         });
 
-
         return spotid;
     },
     deleteSpot: function (options) {
@@ -273,7 +279,9 @@ Meteor.methods({
         Spots.remove(spot);
 
         //delete area containing this spot
-        Areas.remove({spots:spot});
+        Areas.remove({
+            spots: spot
+        });
     },
     createArea: function (options) {
         options = options || {};
@@ -300,5 +308,25 @@ Meteor.methods({
         });
 
         return areaid;
+    },
+    removePoints: function (options) {
+        options = options || {};
+        var teamid = options.teamid;
+        var points = options.points;
+        Teams.update(teamid, {
+            '$inc': {
+                'points': -1 * points
+            }
+        });
+    },
+    givePoints: function (options) {
+        options = options || {};
+        var playerid = options.playerid;
+        var points = options.points;
+        Players.update(playerid, {
+            '$inc': {
+                'points': points
+            }
+        });
     }
 });

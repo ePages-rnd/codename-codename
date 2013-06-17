@@ -3,14 +3,11 @@
 'use strict';
 Template.login.events({
     'click button': function () {
-        var username = $('#username-input').val() || 'player-' + Random.id();
+        var username = $('#username-input').val() || 'player-' + Random.id().substring(0,3);
         Session.set('username', username);
         Session.set('state', 'lobby');
 
-        var position = {
-            'lat': 50.927054,
-            'long': 11.589237
-        };
+        var position = Games.START_POSITION;
 
         Players.insert({
             '_id': username,

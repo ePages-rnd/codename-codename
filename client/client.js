@@ -23,12 +23,11 @@ window.cmiyc = window.cmiyc || {};
 
 window.cmiyc.initialize = function () {
     var gmaps = window.google.maps;
-    Session.set('currentposition', {
-        'lat': 0,
-        'long': 0
-    });
+
+    Session.set('currentposition', Games.START_POSITION);
 
     var mapOptions = {
+
         center: new gmaps.LatLng(40.77153, -73.97722),
         zoom: 16,
         disableDefaultUI: true,
