@@ -10,7 +10,7 @@
  */
 Games = new Meteor.Collection('Games');
 
-Games.MAX_PLAYERS = 12;
+Games.MAX_PLAYERS = 100;
 Games.START_POSITION = {
     'lat': 50.927054,
     'long': 11.589237
@@ -33,6 +33,11 @@ Teams.START_POINTS = 500;
  */
 Spots = new Meteor.Collection('Spots');
 
+Spots.fastDistance = function (pos1, pos2) {
+    var a = pos1.lat - pos2.lat;
+    var b = pos1.long - pos2.long;
+    return Math.sqrt(a * a + b * b) * 111000;
+};
 
 Spots.distance = function (pos1, pos2) {
 
@@ -74,6 +79,10 @@ Areas = new Meteor.Collection('Areas');
 
 
 Areas.contains = function (spot1, spot2, spot3, x) {
+    if (Spots.fastDistance(spot1.position, x) > Spots.MAX_DISTANCE) {
+        return false;
+    }
+
     var getSide = function (p1, p2, x) {
             var side = (p2.lat - p1.lat) * (x.long - p1.long) - (x.lat - p1.lat) * (p2.long - p1.long);
             return side === 0 ? 0 : side > 0 ? 1 : -1;
@@ -221,47 +230,48 @@ Meteor.methods({
         if (!game) {
             return;
         }
+        var gamespots = Spots.find({
+            $or: [{
+                'team': game.team1
+            }, {
+                'team': game.team2
+            }]
+        }).fetch();
+        var spots = {};
 
-        var violates = false;
-        Spots.find({
-            team: teamid
-        }).forEach(function (spot) {
-            var distance = Spots.distance(position, spot.position);
-            if (distance < Spots.MIN_DISTANCE) {
-                violates = true;
+        for (var spotid in gamespots) {
+            var spot = gamespots[spotid];
+            if (spot.team === teamid) {
+                spots[spot._id] = spot;
+                var distance = Spots.distance(position, spot.position);
+                if (distance < Spots.MIN_DISTANCE) {
+                    return;
+                }
             }
-        });
-        if (violates) {
-            return;
         }
 
         var enemyteam = teamid === game.team1 ? game.team2 : game.team1;
-        Spots.find({
-            team: enemyteam
-        }).forEach(function (spot) {
-            var distance = Spots.distance(position, spot.position);
-            if (distance < Spots.MIN_DISTANCE_ENEMY) {
-                violates = true;
+        for (var spotid in gamespots) {
+            var spot = gamespots[spotid];
+            if (spot.team === enemyteam) {
+                spots[spot._id] = spot;
+                var distance = Spots.distance(position, spot.position);
+                if (distance < Spots.MIN_DISTANCE_ENEMY) {
+                    return;
+                }
             }
-        });
-        if (violates) {
-            return;
         }
 
-        // not in enemy territory
-        Areas.find({
-            team: enemyteam
-        }).forEach(function (area) {
-            var spot1 = Spots.findOne(area.spots[0]);
-            var spot2 = Spots.findOne(area.spots[1]);
-            var spot3 = Spots.findOne(area.spots[2]);
+        var areas = Areas.find({team: enemyteam}).fetch();
+        for(var areaid in areas) {
+            var area = areas[areaid];
+            var spot1 = spots[area.spots[0]];
+            var spot2 = spots[area.spots[1]];
+            var spot3 = spots[area.spots[2]];
 
             if (Areas.contains(spot1, spot2, spot3, position)) {
-                violates = true;
+                return;
             }
-        });
-        if (violates) {
-            return;
         }
 
         var spotid = Spots.insert({
