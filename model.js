@@ -10,11 +10,12 @@
  */
 Games = new Meteor.Collection('Games');
 
-Games.MAX_PLAYERS = 100;
+Games.MAX_PLAYERS = 12;
 Games.START_POSITION = {
     'lat': 50.927054,
     'long': 11.589237
 };
+Games.KEEP_ALIVE = 60;
 
 /*
  * [player1_id, player2_id]
@@ -123,6 +124,8 @@ Spots.MIN_DISTANCE = 150;
 Spots.MIN_DISTANCE_ENEMY = 50;
 Spots.MAX_DISTANCE = 300;
 
+HighScores = new Meteor.Collection('HighScores');
+
 Meteor.methods({
     createGame: function (options) {
         options = options || {};
@@ -154,9 +157,11 @@ Meteor.methods({
     startGame: function (options) {
         options = options || {};
         var gameid = options.gameid;
+        var bots = options.bots;
 
         Meteor.call('_startGameServer', {
-            gameid: gameid
+            'gameid': gameid,
+            'bots': bots
         }, function () {
             Games.update(gameid, {
                 $set: {
@@ -186,7 +191,7 @@ Meteor.methods({
         var teamtojoin = team1.players.length > team2.players.length ? game.team2 : game.team1;
 
         Teams.update(teamtojoin, {
-            $addToSet: {
+            '$addToSet': {
                 players: user
             }
         });
@@ -210,7 +215,7 @@ Meteor.methods({
         }
 
         Teams.update(teamid, {
-            $pull: {
+            '$pull': {
                 'players': user
             }
         });
@@ -262,8 +267,10 @@ Meteor.methods({
             }
         }
 
-        var areas = Areas.find({team: enemyteam}).fetch();
-        for(var areaid in areas) {
+        var areas = Areas.find({
+            team: enemyteam
+        }).fetch();
+        for (var areaid in areas) {
             var area = areas[areaid];
             var spot1 = spots[area.spots[0]];
             var spot2 = spots[area.spots[1]];
@@ -280,6 +287,11 @@ Meteor.methods({
             'position': position
         });
 
+        Meteor.call('givePoints', {
+            'playerid': player,
+            'points': 1
+        });
+
         return spotid;
     },
     deleteSpot: function (options) {
@@ -290,7 +302,7 @@ Meteor.methods({
 
         //delete area containing this spot
         Areas.remove({
-            spots: spot
+            'spots': spot
         });
     },
     createArea: function (options) {
@@ -333,10 +345,40 @@ Meteor.methods({
         options = options || {};
         var playerid = options.playerid;
         var points = options.points;
-        Players.update(playerid, {
+        HighScores.update(playerid, {
             '$inc': {
                 'points': points
             }
+        }, {
+            'upsert': true
+        });
+    },
+    keepAlive: function (options) {
+        options = options || {};
+        var playerid = options.playerid;
+        Players.update(playerid, {
+            'keepalive': new Date().getTime()
+        });
+    },
+    killNotAlives: function (options) {
+        options = options || {};
+        var std = Players.update({
+            '$and': [{
+                'keepalive': {
+                    '$lt': new Date().getTime() - (1000 * Games.KEEP_ALIVE)
+                }
+            }, {
+                'bot': {
+                    '$exists': false
+                }
+            }]
+
+        }, {
+            '$set': {
+                dead: true
+            }
+        }, {
+            'multi': true
         });
     }
 });

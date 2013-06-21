@@ -75,3 +75,7 @@ Template.search.distance = function (origin) {
     }
     return Math.round(distance / 10) * 10 + ' m';
 };
+
+Template.highscore.playerscores = function() {
+    return HighScores.find().fetch();
+};

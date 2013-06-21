@@ -1,11 +1,4 @@
-html {
-    height: 100%;
-}
-body {
-    height: 100%;
-}
-
-#map_canvas {
+html, body, #map_canvas {
     height: 100%;
 }
 
@@ -14,6 +7,7 @@ body {
     position: fixed;
     text-align: center;
     z-index: 900;
+    height: 100%;
 }
 
 .overlay-box {
@@ -29,6 +23,25 @@ body {
     font-size:18px;
     font-weight:200px;
     line-height:30px;
+}
+
+.align-right {
+    float: right;
+}
+
+.gamestatusbar {
+    background-color: #fff;
+    opacity: 0.85;
+    padding: 10px;
+}
+
+.gamestatusbar h1 {
+    margin: 0px;
+}
+
+.align-bottom {
+    position: absolute;
+    bottom: 15px;
 }
 
 body {

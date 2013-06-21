@@ -1,15 +1,18 @@
 /*global Template, Session, Meteor*/
 /*global Games, Teams*/
+/*$*/
 'use strict';
 
 Template.wait.events({
     'click #start-game-btn': function () {
         var gameid = Session.get('currentgame');
+        var bots = $('input[name=IncludeBotsCB]').attr('checked') ? true : false;
         if (!gameid) {
             Meteor.Error(413, 'no game selected');
         }
         Meteor.call('startGame', {
-            'gameid': gameid
+            'gameid': gameid,
+            'bots': bots
         }, function (error, game) {
             if (!error) {
                 Session.set('state', 'game');

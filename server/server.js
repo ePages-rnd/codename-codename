@@ -15,7 +15,7 @@ Meteor.publish('AvailableGames', function (currentgame) {
 Meteor.publish('CurrentGameTeams', function (gameid) {
     var game = Games.findOne(gameid);
     if (!game) {
-        return;
+        return [];
     }
     return Teams.find({
         $or: [{
@@ -29,7 +29,7 @@ Meteor.publish('CurrentGameTeams', function (gameid) {
 Meteor.publish('MyTeam', function (teamid) {
     var team = Teams.findOne(teamid);
     if (!team) {
-        return;
+        return [];
     }
 
     return Players.find({
@@ -42,7 +42,7 @@ Meteor.publish('MyTeam', function (teamid) {
 Meteor.publish('GameSpots', function (gameid) {
     var game = Games.findOne(gameid);
     if (!game) {
-        return;
+        return [];
     }
 
     return Spots.find({
@@ -57,7 +57,7 @@ Meteor.publish('GameSpots', function (gameid) {
 Meteor.publish('GameAreas', function (gameid) {
     var game = Games.findOne(gameid);
     if (!game) {
-        return;
+        return [];
     }
 
     return Areas.find({
@@ -69,4 +69,11 @@ Meteor.publish('GameAreas', function (gameid) {
     });
 });
 
-
+Meteor.publish('HighScores', function () {
+    return HighScores.find({}, {
+        'sort': {
+            'points': -1
+        },
+        'limit': 5
+    });
+});

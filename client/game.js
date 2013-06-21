@@ -12,7 +12,6 @@ var resetMap = function () {
             var player = players[playerid];
             player.setMap(null);
         }
-        players = {};
         for (spotid in spots) {
             var spot = spots[spotid];
             spot.setMap(null);
@@ -51,8 +50,8 @@ Template.game.events({
             'teamid': teamid,
             'user': username
         }, function (error, result) {
-            Session.set('currentgame', null);
-            Session.set('currentteam', null);
+            Session.set('currentgame', undefined);
+            Session.set('currentteam', undefined);
             resetMap();
             Session.set('state', 'lobby');
         });
@@ -62,6 +61,8 @@ Template.game.events({
 Template.game.points = function() {
     var gameid = Session.get('currentgame');
     var game = Games.findOne(gameid);
+
+    if(!game) {return;}
 
     var myteam = Session.get('currentteam');
     var team1color = myteam === game.team1 ? '#00FF00' : '#FF0000';
@@ -73,7 +74,10 @@ Template.game.points = function() {
 
     if(!team1 || !team2) {return;}
 
-    return '<span style="color:' + team1color + '">' + team1.points + '</span> : <span style="color:' + team2color + '">' + team2.points + '</span>';
+    var team1points = team1.points < 0 ? 0 : team1.points;
+    var team2points = team2.points < 0 ? 0 : team2.points;
+
+    return '<span style="color:' + team1color + '">' + team1points + '</span> : <span style="color:' + team2color + '">' + team2points + '</span>';
 }
 
 Meteor.startup(function () {
@@ -100,6 +104,12 @@ Meteor.startup(function () {
             var game = Games.findOne(gameid);
             if (!game) {
                 return;
+            }
+            window.onresize =function() {
+                var position = Session.get('currentposition');
+                if(position && window.cmiyc.map) {
+                    window.cmiyc.map.setCenter(mapcords(position));
+                }
             }
             window.navigator.geolocation.watchPosition(function (g) {
                 var username = Session.get('username');
@@ -135,6 +145,7 @@ Meteor.startup(function () {
             myteam.players.forEach(function (playerid) {
 
                 var player = Players.findOne(playerid);
+                if(!player || !player.position) {return;}
                 var marker = new google.maps.Marker({
                     position: mapcords(player.position),
                     map: window.cmiyc.map,
@@ -170,6 +181,7 @@ Meteor.startup(function () {
                     $('.overlay').css('background', 'rgba(255, 0, 0, .00001)');
                 }
             }
+            if(!player.position) {return;}
             if(!marker) {
                 var marker = new google.maps.Marker({
                     position: mapcords(player.position),
@@ -190,6 +202,12 @@ Meteor.startup(function () {
                 }
                 var position = new google.maps.LatLng(player.position.lat, player.position.long);
                 marker.setPosition(position);
+            }
+        },
+        'removed': function(player) {
+            var marker = players[player._id];
+            if(marker) {
+                marker.setMap(null);
             }
         }
     });
@@ -262,5 +280,14 @@ Meteor.startup(function () {
             }
         }
     });
+
+    var keepalive = function() {
+        Meteor.call('keepAlive', {
+            playerid: Session.get('username')
+        });
+    }
+
+    keepalive();
+    Meteor.setInterval(keepalive, 10000);
 
 });

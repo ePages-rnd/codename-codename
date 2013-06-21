@@ -8,11 +8,15 @@
 'use strict';
 
 Deps.autorun(function () {
-    Meteor.subscribe('AvailableGames', Session.get('currentgame'));
-    Meteor.subscribe('CurrentGameTeams', Session.get('currentgame'));
-    Meteor.subscribe('MyTeam', Session.get('currentteam'));
-    Meteor.subscribe('GameSpots', Session.get('currentgame'));
-    Meteor.subscribe('GameAreas', Session.get('currentgame'));
+    var gameid = Session.get('currentgame');
+    var teamid = Session.get('currentteam');
+
+    Meteor.subscribe('AvailableGames', gameid);
+    Meteor.subscribe('CurrentGameTeams', gameid);
+    Meteor.subscribe('MyTeam', teamid);
+    Meteor.subscribe('GameSpots', gameid);
+    Meteor.subscribe('GameAreas', gameid);
+    Meteor.subscribe('HighScores');
 });
 
 Meteor.startup(function () {
